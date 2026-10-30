@@ -128,7 +128,7 @@ def add_listing(title, brand, size, platform, cost_cents, list_cents):
 def update_listing(listing_id, title, brand, size, platform, cost_cents, list_cents):
     execute(
         "UPDATE listings SET title = ?, brand = ?, size = ?, platform = ?,"
-        " cost_cents = ?, list_cents = ? WHERE id = ?",
+        " cost_cents = ?, list_cents = ? WHERE id = ? AND status = 'active'",
         (title, brand, size, platform, cost_cents, list_cents, listing_id),
     )
 
