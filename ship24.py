@@ -13,6 +13,13 @@ MILESTONE_STATUS = {
 }
 
 
+def new_status(current, milestone):
+    # returned is only ever set by hand and takes the sale out of profit, so tracking can't undo it
+    if current == "returned":
+        return current
+    return MILESTONE_STATUS.get(milestone, current)
+
+
 def _event(raw):
     """One Ship24 event as saved in shipment_events; any field may be missing."""
     when = raw.get("occurrenceDatetime")

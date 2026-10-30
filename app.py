@@ -348,7 +348,7 @@ with shipping_tab:
                     last_event = milestone
                     if events:
                         last_event = f"{events[0]['occurred_at'] or ''} {events[0]['status']}".strip()
-                    status = ship24.MILESTONE_STATUS.get(milestone, shipment["status"])
+                    status = ship24.new_status(shipment["status"], milestone)
                     db.record_tracking(shipment["id"], status, last_event, events)
                     st.rerun()
             history = db.shipment_events(shipment["id"])
