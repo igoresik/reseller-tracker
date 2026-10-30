@@ -47,7 +47,7 @@ def headline(listings, sold):
     to_pack = sum(s["status"] == "pending" for s in sold)
     on_the_way = sum(s["status"] in ("label_created", "shipped") for s in sold)
     made = sum(
-        net_profit(s["sale_cents"], s["cost_cents"], s["fee_bps"], s["fee_fixed_cents"], s["shipping_cents"])[1]
+        s["sale_cents"] - s["sale_fee_cents"] - s["cost_cents"] - s["shipping_cents"]
         for s in sold
         if s["status"] != "returned"
     )
