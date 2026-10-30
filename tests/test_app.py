@@ -27,6 +27,12 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(app.exception, [])
         self.assertEqual(init.call_count, 1)
 
+    def test_fee_percent_cannot_go_over_100(self):
+        with patch.object(st, "data_editor", wraps=st.data_editor) as editor:
+            AppTest.from_file(APP, default_timeout=30).run()
+        column = editor.call_args.kwargs["column_config"]["fee_pct"]
+        self.assertEqual(column["type_config"]["max_value"], 100.0)
+
     def test_parcel_heading_escapes_markdown_in_the_title(self):
         db.init()
         db.add_listing("Tee *new* $5 or $6 :red[L]", "", "", "Depop", 100, 500)

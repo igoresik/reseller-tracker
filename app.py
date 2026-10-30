@@ -243,7 +243,7 @@ with inventory_tab:
                 disabled=["name"],
                 column_config={
                     "name": "Platform",
-                    "fee_pct": st.column_config.NumberColumn("Fee %", min_value=0.0),
+                    "fee_pct": st.column_config.NumberColumn("Fee %", min_value=0.0, max_value=100.0),
                     "fee_fixed": st.column_config.NumberColumn("Fixed fee (€)", min_value=0.0),
                 },
             )
