@@ -79,6 +79,8 @@ class EbayTest(unittest.TestCase):
         url = "https://example.com/done?code=v%5E1.1%23i%5E1&expires_in=299"
         self.assertEqual(ebay.code_from_redirect(url), "v^1.1#i^1")
         self.assertEqual(ebay.code_from_redirect(" v^1.1#i^1 "), "v^1.1#i^1")
+        # copied from the address bar on its own, still encoded
+        self.assertEqual(ebay.code_from_redirect("v%5E1.1%23i%5E1"), "v^1.1#i^1")
 
     def test_exchange_code_returns_refresh_token(self):
         body = {"access_token": "a", "refresh_token": "r"}
