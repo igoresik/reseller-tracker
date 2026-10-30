@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from html import escape
 
@@ -36,6 +37,11 @@ EBAY_COLUMNS = {
     "payment": "Payment",
     "fulfillment": "Fulfilment",
 }
+
+
+def plain(text):
+    """Text for a Markdown element, shown exactly as typed: "$10 or $20" is not a formula."""
+    return re.sub(r"([\\`*_{}\[\]()<>#+\-.!|~$:])", r"\\\1", text)
 
 
 def eur(cents):
@@ -333,7 +339,7 @@ with shipping_tab:
                     st.rerun()
 
         with tracking_column:
-            st.subheader(shipment["title"], anchor=False)
+            st.subheader(plain(shipment["title"]), anchor=False)
             if shipment["status"] == "returned":
                 st.warning("This parcel came back to you.")
             else:

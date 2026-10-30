@@ -27,6 +27,14 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(app.exception, [])
         self.assertEqual(init.call_count, 1)
 
+    def test_parcel_heading_escapes_markdown_in_the_title(self):
+        db.init()
+        db.add_listing("Tee *new* $5 or $6 :red[L]", "", "", "Depop", 100, 500)
+        db.mark_sold(1, 500, 0)
+        app = AppTest.from_file(APP, default_timeout=30).run()
+        self.assertEqual(app.exception, [])
+        self.assertIn(r"Tee \*new\* \$5 or \$6 \:red\[L\]", [h.value for h in app.subheader])
+
 
 if __name__ == "__main__":
     unittest.main()
