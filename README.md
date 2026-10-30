@@ -50,7 +50,7 @@ To build the exe yourself: `powershell -ExecutionPolicy Bypass -File build.ps1`.
 
 | File | What it does |
 |---|---|
-| `app.py` | Streamlit UI: Inventory, Profit and Shipping tabs |
+| `app.py` | Streamlit UI: Inventory, Profit, Shipping, eBay and Settings tabs |
 | `db.py` | SQLite connection and queries |
 | `finance.py` | Net profit and margin calculation |
 | `launcher.py` | Start-up of the exe: runs the app and opens its window |
@@ -89,7 +89,7 @@ Still keep `tracker.db` to yourself: your listings in it are not encrypted, and 
 
 1. Create an account at ship24.com and copy your API key.
 2. Paste it in **Settings** and save.
-3. In **Shipping**, give a shipment a tracking number, then press **Refresh tracking**. The status and the latest event are saved; the full event list is shown below.
+3. In **Shipping**, give a shipment a tracking number, then press **Check tracking**. The status and the latest event are saved; the full event list is shown below.
 
 Each press is one request to Ship24 and counts against your plan.
 
@@ -108,6 +108,7 @@ Vinted and Depop have no API open to the public, so those listings are entered b
 ## Data
 
 - Money is stored as whole cents (`INTEGER`) and fee rates as basis points (12.8% = 1280), so no amount goes through floating point. Fees round half up to the cent.
+- Each sale keeps the fee it was made with, so changing a platform's rates only affects later sales. Sales from before this was added use the rates set when you first update.
 - Every tracking event Ship24 reports is saved in `shipment_events`, so a parcel's history survives a restart. Checking again only adds events not seen before.
 - A database from v0.1 (euros stored as `REAL`) is converted on first start, all or nothing. The old file is kept next to it as `tracker.before-cents.db`.
 
