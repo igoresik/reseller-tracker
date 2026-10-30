@@ -93,6 +93,14 @@ class DatabaseTest(unittest.TestCase):
         self.assertEqual(db.query("SELECT sale_cents FROM listings")[0]["sale_cents"], 3000)
         self.assertEqual([s["shipping_cents"] for s in db.shipments()], [0])
 
+    def test_editing_from_a_stale_window_leaves_a_sold_listing_alone(self):
+        db.init()
+        db.add_listing("Jeans", "", "", "Depop", 1000, 4000)
+        db.mark_sold(1, 3000, 0)
+        db.update_listing(1, "Jeans", "", "", "eBay", 2500, 4000)
+        listing = db.query("SELECT platform, cost_cents FROM listings")[0]
+        self.assertEqual((listing["platform"], listing["cost_cents"]), ("Depop", 1000))
+
     def test_selling_a_removed_listing_does_nothing(self):
         db.init()
         db.add_listing("Jeans", "", "", "Depop", 1000, 4000)
