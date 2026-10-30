@@ -141,6 +141,21 @@ class EbayTest(unittest.TestCase):
         self.assertEqual(offers[0]["offer"], "30.0 EUR")
         self.assertEqual(offers[0]["buyer"], "buyer1")
 
+    def test_best_offers_reads_every_page(self):
+        page = """<GetBestOffersResponse xmlns="urn:ebay:apis:eBLBaseComponents">
+          <Ack>Success</Ack>
+          <PaginationResult><TotalNumberOfPages>2</TotalNumberOfPages></PaginationResult>
+          <ItemBestOffersArray><ItemBestOffers>
+            <Item><ItemID>{0}</ItemID></Item>
+            <BestOfferArray><BestOffer><Price currencyID="EUR">30.0</Price></BestOffer></BestOfferArray>
+          </ItemBestOffers></ItemBestOffersArray>
+        </GetBestOffersResponse>"""
+        pages = [reply(content=page.format(n).encode()) for n in (111, 222)]
+        with patch("ebay.requests.post", side_effect=pages) as post:
+            offers = ebay.best_offers("token")
+        self.assertEqual([o["item_id"] for o in offers], ["111", "222"])
+        self.assertIn(b"<PageNumber>2</PageNumber>", post.call_args.kwargs["data"])
+
     def test_trading_failure_is_raised(self):
         xml = b"""<GetBestOffersResponse xmlns="urn:ebay:apis:eBLBaseComponents">
           <Ack>Failure</Ack><Errors><LongMessage>Invalid IAF token.</LongMessage></Errors>

@@ -100,18 +100,25 @@ def active_listings(token):
 
 def best_offers(token):
     """Active Best Offers on all of the account's items."""
-    root = _trading(token, "GetBestOffers", "<DetailLevel>ReturnAll</DetailLevel>")
-    offers = []
-    for group in root.iterfind("e:ItemBestOffersArray/e:ItemBestOffers", NS):
-        for offer in group.iterfind("e:BestOfferArray/e:BestOffer", NS):
-            offers.append({
-                "item_id": group.findtext("e:Item/e:ItemID", namespaces=NS),
-                "title": group.findtext("e:Item/e:Title", namespaces=NS),
-                "offer": _money(offer, "e:Price"),
-                "buyer": offer.findtext("e:Buyer/e:UserID", namespaces=NS),
-                "message": offer.findtext("e:BuyerMessage", namespaces=NS),
-                "expires": offer.findtext("e:ExpirationTime", namespaces=NS),
-            })
+    offers, page, pages = [], 1, 1
+    while page <= pages:
+        root = _trading(
+            token,
+            "GetBestOffers",
+            f"<DetailLevel>ReturnAll</DetailLevel><Pagination><PageNumber>{page}</PageNumber></Pagination>",
+        )
+        for group in root.iterfind("e:ItemBestOffersArray/e:ItemBestOffers", NS):
+            for offer in group.iterfind("e:BestOfferArray/e:BestOffer", NS):
+                offers.append({
+                    "item_id": group.findtext("e:Item/e:ItemID", namespaces=NS),
+                    "title": group.findtext("e:Item/e:Title", namespaces=NS),
+                    "offer": _money(offer, "e:Price"),
+                    "buyer": offer.findtext("e:Buyer/e:UserID", namespaces=NS),
+                    "message": offer.findtext("e:BuyerMessage", namespaces=NS),
+                    "expires": offer.findtext("e:ExpirationTime", namespaces=NS),
+                })
+        pages = int(root.findtext("e:PaginationResult/e:TotalNumberOfPages", "1", NS))
+        page += 1
     return offers
 
 
