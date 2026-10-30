@@ -1,5 +1,6 @@
 import sqlite3
 from contextlib import closing
+from datetime import date, timedelta, timezone
 import tempfile
 import unittest
 from pathlib import Path
@@ -64,6 +65,10 @@ class DatabaseTest(unittest.TestCase):
             columns = [row[1] for row in conn.execute("PRAGMA table_info(listings)")]
             self.assertIn("cost_price", columns)
             self.assertEqual(conn.execute("SELECT list_price FROM listings WHERE id = 1").fetchone()[0], 19.99)
+
+    def test_saved_times_show_on_the_local_calendar_day(self):
+        lisbon_summer = timezone(timedelta(hours=1))
+        self.assertEqual(db.local_date("2026-06-30 23:30:00", lisbon_summer), date(2026, 7, 1))
 
     def test_tracking_history_is_kept_and_not_duplicated(self):
         db.init()
