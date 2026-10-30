@@ -1,5 +1,5 @@
 import xml.etree.ElementTree as ET
-from urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import parse_qs, unquote, urlencode, urlparse
 
 import requests
 
@@ -22,7 +22,7 @@ def consent_url(client_id, runame):
 def code_from_redirect(text):
     """Accept the full redirect URL or the bare code."""
     codes = parse_qs(urlparse(text.strip()).query).get("code")
-    return codes[0] if codes else text.strip()
+    return codes[0] if codes else unquote(text.strip())
 
 
 def _token(client_id, client_secret, data):
