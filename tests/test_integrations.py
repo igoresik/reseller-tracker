@@ -168,6 +168,16 @@ class EbayTest(unittest.TestCase):
         self.assertEqual(rows[0]["ebay_fee"], "3.84")
         self.assertEqual(rows[0]["items"], "Levi's 501")
 
+    def test_orders_reads_every_page(self):
+        pages = [
+            reply(json={"orders": [{"orderId": "1"}, {"orderId": "2"}], "next": "more"}),
+            reply(json={"orders": [{"orderId": "3"}]}),
+        ]
+        with patch("ebay.requests.get", side_effect=pages) as get:
+            rows = ebay.orders("token")
+        self.assertEqual([row["order_id"] for row in rows], ["1", "2", "3"])
+        self.assertEqual(get.call_args.kwargs["params"]["offset"], 2)
+
 
 if __name__ == "__main__":
     unittest.main()

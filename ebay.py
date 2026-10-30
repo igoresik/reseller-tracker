@@ -116,26 +116,29 @@ def best_offers(token):
 
 
 def orders(token):
-    response = requests.get(
-        ORDERS_URL,
-        headers={"Authorization": f"Bearer {token}"},
-        params={"limit": 50},
-        timeout=30,
-    )
-    if not response.ok:
-        raise RuntimeError(f"eBay: orders request failed, HTTP {response.status_code}")
     rows = []
-    for order in response.json().get("orders", []):
-        total = order.get("pricingSummary", {}).get("total", {})
-        fee = order.get("totalMarketplaceFee", {})
-        rows.append({
-            "order_id": order.get("orderId"),
-            "date": order.get("creationDate"),
-            "items": ", ".join(line.get("title", "") for line in order.get("lineItems", [])),
-            "buyer": order.get("buyer", {}).get("username"),
-            "total": f"{total.get('value', '')} {total.get('currency', '')}".strip(),
-            "ebay_fee": fee.get("value"),
-            "payment": order.get("orderPaymentStatus"),
-            "fulfillment": order.get("orderFulfillmentStatus"),
-        })
-    return rows
+    while True:
+        response = requests.get(
+            ORDERS_URL,
+            headers={"Authorization": f"Bearer {token}"},
+            params={"limit": 50, "offset": len(rows)},
+            timeout=30,
+        )
+        if not response.ok:
+            raise RuntimeError(f"eBay: orders request failed, HTTP {response.status_code}")
+        body = response.json()
+        for order in body.get("orders", []):
+            total = order.get("pricingSummary", {}).get("total", {})
+            fee = order.get("totalMarketplaceFee", {})
+            rows.append({
+                "order_id": order.get("orderId"),
+                "date": order.get("creationDate"),
+                "items": ", ".join(line.get("title", "") for line in order.get("lineItems", [])),
+                "buyer": order.get("buyer", {}).get("username"),
+                "total": f"{total.get('value', '')} {total.get('currency', '')}".strip(),
+                "ebay_fee": fee.get("value"),
+                "payment": order.get("orderPaymentStatus"),
+                "fulfillment": order.get("orderFulfillmentStatus"),
+            })
+        if not (body.get("next") and body.get("orders")):
+            return rows
