@@ -139,6 +139,12 @@ class EbayTest(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "Invalid IAF token"):
                 ebay.best_offers("token")
 
+    def test_trading_reply_that_is_not_xml_is_reported(self):
+        page = b"<html><body>503 Service Unavailable<br></body></html>"
+        with patch("ebay.requests.post", return_value=reply(503, content=page)):
+            with self.assertRaisesRegex(RuntimeError, "HTTP 503"):
+                ebay.best_offers("token")
+
     def test_orders_flattens_fields(self):
         body = {"orders": [{
             "orderId": "12-345", "creationDate": "2026-10-10T08:00:00.000Z",

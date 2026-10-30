@@ -61,7 +61,10 @@ def _trading(token, call, inner_xml):
         "Content-Type": "text/xml",
     }
     response = requests.post(TRADING_URL, headers=headers, data=body.encode(), timeout=30)
-    root = ET.fromstring(response.content)
+    try:
+        root = ET.fromstring(response.content)
+    except ET.ParseError:  # outages come back as an HTML page
+        raise RuntimeError(f"eBay: HTTP {response.status_code}")
     if root.findtext("e:Ack", namespaces=NS) not in ("Success", "Warning"):
         message = root.findtext("e:Errors/e:LongMessage", namespaces=NS)
         raise RuntimeError(f"eBay: {message or response.status_code}")
