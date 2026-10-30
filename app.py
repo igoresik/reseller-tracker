@@ -1,5 +1,4 @@
 import re
-from datetime import datetime
 from html import escape
 
 import requests
@@ -193,7 +192,7 @@ with inventory_tab:
                     "margin": float(
                         net_profit(row["list_cents"], row["cost_cents"], row["fee_bps"], row["fee_fixed_cents"])[2]
                     ),
-                    "listed": datetime.fromisoformat(row["created_at"]).date(),
+                    "listed": db.local_date(row["created_at"]),
                 }
                 for row in listings
             ]
@@ -295,7 +294,7 @@ with shipping_tab:
                     "sold_for": row["sale_cents"] / 100,
                     "shipping": row["shipping_cents"] / 100,
                     "status": STATUS_LABELS[row["status"]],
-                    "updated_at": row["updated_at"][:10],
+                    "updated_at": db.local_date(row["updated_at"]).isoformat(),
                 }
                 for row in shipments
             ],

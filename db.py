@@ -3,6 +3,7 @@ import shutil
 import sqlite3
 import sys
 from contextlib import closing
+from datetime import datetime, timezone
 from pathlib import Path
 
 import vault
@@ -105,6 +106,11 @@ def init():
                 conn.execute(
                     "UPDATE settings SET value = ? WHERE key = ?", (vault.lock(row["value"]), row["key"])
                 )
+
+
+def local_date(stamp, tz=None):
+    # CURRENT_TIMESTAMP saves UTC, so late-night changes would otherwise show on the wrong day
+    return datetime.fromisoformat(stamp).replace(tzinfo=timezone.utc).astimezone(tz).date()
 
 
 def query(sql, params=()):
