@@ -151,9 +151,11 @@ def mark_sold(listing_id, sale_cents, shipping_cents):
     with closing(connect()) as conn, conn:
         rates = conn.execute(
             "SELECT p.fee_bps, p.fee_fixed_cents FROM listings l"
-            " JOIN platforms p ON p.name = l.platform WHERE l.id = ?",
+            " JOIN platforms p ON p.name = l.platform WHERE l.id = ? AND l.status = 'active'",
             (listing_id,),
         ).fetchone()
+        if not rates:  # another window already sold or removed it
+            return
         fee = net_profit(sale_cents, 0, rates["fee_bps"], rates["fee_fixed_cents"])[0]
         conn.execute(
             "UPDATE listings SET status = 'sold', sale_cents = ?, sale_fee_cents = ? WHERE id = ?",

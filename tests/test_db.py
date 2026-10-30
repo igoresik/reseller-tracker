@@ -85,6 +85,21 @@ class DatabaseTest(unittest.TestCase):
         shipment = db.shipments()[0]
         self.assertEqual((shipment["status"], shipment["last_event"]), ("shipped", "2026-10-02 09:00 Departed"))
 
+    def test_selling_twice_from_a_stale_window_keeps_the_first_sale(self):
+        db.init()
+        db.add_listing("Jeans", "", "", "Depop", 1000, 4000)
+        db.mark_sold(1, 3000, 0)
+        db.mark_sold(1, 2000, 500)
+        self.assertEqual(db.query("SELECT sale_cents FROM listings")[0]["sale_cents"], 3000)
+        self.assertEqual([s["shipping_cents"] for s in db.shipments()], [0])
+
+    def test_selling_a_removed_listing_does_nothing(self):
+        db.init()
+        db.add_listing("Jeans", "", "", "Depop", 1000, 4000)
+        db.delete_listing(1)
+        db.mark_sold(1, 3000, 0)
+        self.assertEqual(db.shipments(), [])
+
     def test_changing_a_fee_does_not_rewrite_past_sales(self):
         db.init()
         db.add_listing("Jeans", "", "", "eBay", 1000, 4000)
