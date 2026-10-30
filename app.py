@@ -136,6 +136,12 @@ def journey(status):
     return f'<ol class="journey">{items}</ol>'
 
 
+@st.cache_resource
+def setup_database():
+    # Streamlit reruns this whole file on every click, and setup writes to the database
+    db.init()
+
+
 st.set_page_config(page_title="Logistics Tracker", page_icon=":material/checkroom:", layout="wide")
 # another website can reach a local server by pointing its own domain at 127.0.0.1;
 # only answer when the browser asked for this computer by name
@@ -143,7 +149,7 @@ host = st.context.headers.get("Host", "").rsplit(":", 1)[0]
 if host not in ("", "127.0.0.1", "localhost"):
     st.stop()
 st.html(db.ROOT / "style.css")
-db.init()
+setup_database()
 settings = db.settings()
 listings = db.active_listings()
 
