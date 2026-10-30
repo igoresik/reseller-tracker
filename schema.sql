@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS listings (
     cost_cents INTEGER NOT NULL CHECK (cost_cents >= 0),
     list_cents INTEGER NOT NULL CHECK (list_cents > 0),
     sale_cents INTEGER CHECK (sale_cents > 0),
+    sale_fee_cents INTEGER,  -- the fee when it sold, so editing a platform's rates leaves past profit alone
     status     TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'sold')),
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -56,4 +57,4 @@ CREATE TABLE IF NOT EXISTS settings (
     value TEXT NOT NULL
 );
 
-PRAGMA user_version = 2;
+PRAGMA user_version = 3;

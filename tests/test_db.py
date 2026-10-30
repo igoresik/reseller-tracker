@@ -46,7 +46,8 @@ class DatabaseTest(unittest.TestCase):
         fees = {row["name"]: (row["fee_bps"], row["fee_fixed_cents"]) for row in db.query("SELECT * FROM platforms")}
         self.assertEqual(fees["eBay"], (1280, 30))
         self.assertEqual(fees["Etsy"], (650, 20))  # a platform the user added survives
-        self.assertEqual(db.query("PRAGMA user_version")[0]["user_version"], 2)
+        self.assertEqual(db.query("SELECT sale_fee_cents FROM listings WHERE id = 1")[0]["sale_fee_cents"], 187)
+        self.assertEqual(db.query("PRAGMA user_version")[0]["user_version"], 3)
         self.assertEqual(db.query("PRAGMA foreign_key_check"), [])
         self.assertTrue(self.path.with_name("tracker.before-cents.db").exists())
 
@@ -83,6 +84,22 @@ class DatabaseTest(unittest.TestCase):
         self.assertEqual([e["status"] for e in history], ["Departed", "Accepted"])
         shipment = db.shipments()[0]
         self.assertEqual((shipment["status"], shipment["last_event"]), ("shipped", "2026-10-02 09:00 Departed"))
+
+    def test_changing_a_fee_does_not_rewrite_past_sales(self):
+        db.init()
+        db.add_listing("Jeans", "", "", "eBay", 1000, 4000)
+        db.mark_sold(1, 2000, 0)
+        db.execute("UPDATE platforms SET fee_bps = 0, fee_fixed_cents = 0 WHERE name = 'eBay'")
+        self.assertEqual(db.sold_listings()[0]["sale_fee_cents"], 286)
+
+    def test_sales_from_before_the_fee_was_kept_get_filled_in(self):
+        db.init()
+        db.add_listing("Jeans", "", "", "Depop", 1000, 4000)
+        db.mark_sold(1, 3000, 0)
+        db.execute("ALTER TABLE listings DROP COLUMN sale_fee_cents")
+        db.init()
+        self.assertEqual(db.sold_listings()[0]["sale_fee_cents"], 300)
+        self.assertEqual(db.query("SELECT sale_fee_cents FROM listings")[0]["sale_fee_cents"], 300)
 
 
 if __name__ == "__main__":

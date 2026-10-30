@@ -6,6 +6,7 @@ from contextlib import closing
 from pathlib import Path
 
 import vault
+from finance import net_profit
 
 ROOT = Path(__file__).parent
 # the packaged app unpacks to a temporary folder, so its data lives in AppData instead
@@ -88,6 +89,16 @@ def init():
             _migrate_to_cents(conn, schema)
     with closing(connect()) as conn, conn:
         conn.executescript(schema)
+        if "sale_fee_cents" not in _columns(conn, "listings"):
+            conn.execute("ALTER TABLE listings ADD COLUMN sale_fee_cents INTEGER")
+        # sales from before the fee was kept: today's rates are the best record left
+        for row in conn.execute(
+            "SELECT l.id, l.sale_cents, p.fee_bps, p.fee_fixed_cents FROM listings l"
+            " JOIN platforms p ON p.name = l.platform"
+            " WHERE l.status = 'sold' AND l.sale_fee_cents IS NULL"
+        ).fetchall():
+            fee = net_profit(row["sale_cents"], 0, row["fee_bps"], row["fee_fixed_cents"])[0]
+            conn.execute("UPDATE listings SET sale_fee_cents = ? WHERE id = ?", (fee, row["id"]))
         # keys saved in plain text by older versions
         for row in conn.execute("SELECT key, value FROM settings").fetchall():
             if row["key"] in SECRET_SETTINGS:
@@ -138,9 +149,15 @@ def active_listings():
 def mark_sold(listing_id, sale_cents, shipping_cents):
     # one transaction: a sold listing always has a shipment
     with closing(connect()) as conn, conn:
+        rates = conn.execute(
+            "SELECT p.fee_bps, p.fee_fixed_cents FROM listings l"
+            " JOIN platforms p ON p.name = l.platform WHERE l.id = ?",
+            (listing_id,),
+        ).fetchone()
+        fee = net_profit(sale_cents, 0, rates["fee_bps"], rates["fee_fixed_cents"])[0]
         conn.execute(
-            "UPDATE listings SET status = 'sold', sale_cents = ? WHERE id = ?",
-            (sale_cents, listing_id),
+            "UPDATE listings SET status = 'sold', sale_cents = ?, sale_fee_cents = ? WHERE id = ?",
+            (sale_cents, fee, listing_id),
         )
         conn.execute(
             "INSERT INTO shipments (listing_id, shipping_cents) VALUES (?, ?)",
@@ -206,7 +223,6 @@ def save_settings(values):
 
 def sold_listings():
     return query(
-        "SELECT l.sale_cents, l.cost_cents, p.fee_bps, p.fee_fixed_cents, s.shipping_cents, s.status"
-        " FROM listings l JOIN platforms p ON p.name = l.platform"
-        " JOIN shipments s ON s.listing_id = l.id WHERE l.status = 'sold'"
+        "SELECT l.sale_cents, l.sale_fee_cents, l.cost_cents, s.shipping_cents, s.status"
+        " FROM listings l JOIN shipments s ON s.listing_id = l.id WHERE l.status = 'sold'"
     )
