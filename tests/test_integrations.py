@@ -73,6 +73,14 @@ class Ship24Test(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "HTTP 429"):
                 ship24.track("key", "AB123")
 
+    def test_checking_tracking_keeps_a_returned_parcel_returned(self):
+        self.assertEqual(ship24.new_status("returned", "in_transit"), "returned")
+        self.assertEqual(ship24.new_status("returned", "delivered"), "returned")
+
+    def test_new_status_follows_the_milestone(self):
+        self.assertEqual(ship24.new_status("pending", "in_transit"), "shipped")
+        self.assertEqual(ship24.new_status("shipped", "exception"), "shipped")
+
 
 class EbayTest(unittest.TestCase):
     def test_code_from_redirect_decodes_url(self):
