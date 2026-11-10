@@ -131,9 +131,13 @@ def orders(token):
             params={"limit": 50, "offset": len(rows)},
             timeout=30,
         )
+        try:
+            body = response.json()
+        except ValueError:
+            raise RuntimeError(f"eBay: HTTP {response.status_code}")
         if not response.ok:
-            raise RuntimeError(f"eBay: orders request failed, HTTP {response.status_code}")
-        body = response.json()
+            error = (body.get("errors") or [{}])[0]
+            raise RuntimeError(f"eBay: {error.get('longMessage') or error.get('message') or response.status_code}")
         for order in body.get("orders", []):
             total = order.get("pricingSummary", {}).get("total", {})
             fee = order.get("totalMarketplaceFee", {})
