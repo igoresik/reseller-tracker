@@ -42,5 +42,28 @@ class AppTestCase(unittest.TestCase):
         self.assertIn(r"Tee \*new\* \$5 or \$6 \:red\[L\]", [h.value for h in app.subheader])
 
 
+    def test_headline_sums_kept_profit_and_leaves_out_returns(self):
+        db.init()
+        db.add_listing("Jeans", "", "", "Depop", 1000, 2500)
+        db.mark_sold(1, 2000, 350)  # 2000 - 200 fee - 1000 paid - 350 shipping
+        db.add_listing("Coat", "", "", "eBay", 1500, 3000)
+        db.mark_sold(2, 1000, 0)
+        db.update_shipment(2, "returned", "", "")
+        db.add_listing("Tee", "", "", "Vinted", 200, 800)
+        app = AppTest.from_file(APP, default_timeout=30).run()
+        self.assertEqual(app.title[0].value, "1 listing live, 1 to pack, €4.50 made.")
+
+    def test_headline_shows_a_loss_and_big_amounts(self):
+        db.init()
+        db.add_listing("Coat", "", "", "eBay", 1500, 3000)
+        db.mark_sold(1, 1000, 0)  # 1000 - 158 fee - 1500 paid
+        db.update_shipment(1, "shipped", "", "")
+        self.assertEqual(AppTest.from_file(APP, default_timeout=30).run().title[0].value,
+                         "1 on the way, −€6.58 made.")
+        db.add_listing("Bag", "", "", "Vinted", 0, 150000)
+        db.mark_sold(2, 123456, 0)
+        self.assertEqual(AppTest.from_file(APP, default_timeout=30).run().title[0].value,
+                         "1 to pack, 1 on the way, €1,227.98 made.")
+
 if __name__ == "__main__":
     unittest.main()
