@@ -196,5 +196,18 @@ class EbayTest(unittest.TestCase):
         self.assertEqual(get.call_args.kwargs["params"]["offset"], 2)
 
 
+    def test_orders_error_shows_what_ebay_said(self):
+        body = {"errors": [{"errorId": 1100, "message": "Access denied",
+                            "longMessage": "Insufficient permissions to fulfill the request."}]}
+        with patch("ebay.requests.get", return_value=reply(403, body)):
+            with self.assertRaisesRegex(RuntimeError, "Insufficient permissions"):
+                ebay.orders("token")
+
+    def test_orders_reply_that_is_not_json_is_reported(self):
+        page = Mock(status_code=200, ok=True, json=Mock(side_effect=ValueError("not json")))
+        with patch("ebay.requests.get", return_value=page):
+            with self.assertRaisesRegex(RuntimeError, "eBay: HTTP 200"):
+                ebay.orders("token")
+
 if __name__ == "__main__":
     unittest.main()
