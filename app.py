@@ -265,13 +265,13 @@ with profit_tab:
                 listings,
                 format_func=lambda row: f"{row['title']} ({row['platform']}, {eur(row['list_cents'])})",
             )
-            # keyed per listing so the offer resets to that listing's price
+            # keyed per listing and price so the offer resets to the current asking price
             offer = st.number_input(
                 "Buyer's offer (€)",
                 min_value=0.0,
                 value=listing["list_cents"] / 100,
                 step=0.5,
-                key=f"offer_{listing['id']}",
+                key=f"offer_{listing['id']}_{listing['list_cents']}",
             )
             shipping = st.number_input(
                 "Shipping you pay (€)", min_value=0.0, step=0.5, key=f"shipping_{listing['id']}"
