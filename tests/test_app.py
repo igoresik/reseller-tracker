@@ -51,6 +51,19 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(app.exception, [])
         self.assertIn(r"Tee \*new\* \$5 or \$6 \:red\[L\]", [h.value for h in app.subheader])
 
+    def test_ebay_dates_are_not_shown_as_raw_utc(self):
+        db.init()
+        db.save_settings({"ebay_client_id": "id", "ebay_client_secret": "secret", "ebay_refresh_token": "token"})
+        stamp = "2026-11-10T23:45:12.000Z"
+        app = AppTest.from_file(APP, default_timeout=30)
+        app.session_state["ebay"] = {"Best offers": [{"item_id": "1", "expires": stamp}],
+                                     "Orders": [{"order_id": "2", "date": stamp}, {"order_id": "3", "date": None}]}
+        app.run()
+        self.assertEqual(app.exception, [])
+        offers, orders = app.dataframe[-2:]
+        self.assertEqual(offers.value["expires"][0], db.local_time(stamp))
+        self.assertEqual(orders.value["date"][0], db.local_time(stamp))
+
 
     def test_headline_sums_kept_profit_and_leaves_out_returns(self):
         db.init()
