@@ -113,6 +113,11 @@ def local_date(stamp, tz=None):
     return datetime.fromisoformat(stamp).replace(tzinfo=timezone.utc).astimezone(tz).date()
 
 
+def local_time(stamp, tz=None):
+    # eBay sends UTC like 2026-11-10T23:45:12.000Z
+    return datetime.fromisoformat(stamp).replace(tzinfo=timezone.utc).astimezone(tz).strftime("%Y-%m-%d %H:%M")
+
+
 def query(sql, params=()):
     with closing(connect()) as conn:
         return [dict(row) for row in conn.execute(sql, params)]

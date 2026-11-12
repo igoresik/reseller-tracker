@@ -70,6 +70,10 @@ class DatabaseTest(unittest.TestCase):
         lisbon_summer = timezone(timedelta(hours=1))
         self.assertEqual(db.local_date("2026-06-30 23:30:00", lisbon_summer), date(2026, 7, 1))
 
+    def test_ebay_times_show_in_local_time(self):
+        lisbon_summer = timezone(timedelta(hours=1))
+        self.assertEqual(db.local_time("2026-06-30T23:45:12.000Z", lisbon_summer), "2026-07-01 00:45")
+
     def test_tracking_history_is_kept_and_not_duplicated(self):
         db.init()
         db.add_listing("Jeans", "", "", "Depop", 1000, 4000)
