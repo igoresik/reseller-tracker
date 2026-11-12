@@ -33,6 +33,16 @@ class AppTestCase(unittest.TestCase):
         column = editor.call_args.kwargs["column_config"]["fee_pct"]
         self.assertEqual(column["type_config"]["max_value"], 100.0)
 
+    def test_offer_starts_at_the_new_price_after_an_edit(self):
+        db.init()
+        db.add_listing("Jeans", "", "", "Depop", 1000, 2000)
+        app = AppTest.from_file(APP, default_timeout=30).run()
+        app.number_input(key="edit_1_price").set_value(30.0)
+        next(b for b in app.button if b.label == "Save changes").click().run()
+        self.assertEqual(app.exception, [])
+        offer = next(n for n in app.number_input if n.label == "Buyer's offer (€)")
+        self.assertEqual(offer.value, 30.0)
+
     def test_parcel_heading_escapes_markdown_in_the_title(self):
         db.init()
         db.add_listing("Tee *new* $5 or $6 :red[L]", "", "", "Depop", 100, 500)
