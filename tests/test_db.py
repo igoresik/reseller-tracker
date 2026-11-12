@@ -90,6 +90,21 @@ class DatabaseTest(unittest.TestCase):
         shipment = db.shipments()[0]
         self.assertEqual((shipment["status"], shipment["last_event"]), ("shipped", "2026-10-02 09:00 Departed"))
 
+    def test_new_tracking_number_drops_the_old_parcels_history(self):
+        db.init()
+        db.add_listing("Jeans", "", "", "Depop", 1000, 4000)
+        db.mark_sold(1, 3000, 0)
+        db.update_shipment(1, "shipped", "CTT", "WRONG1")
+        db.record_tracking(1, "delivered", "2026-10-01 09:00 Delivered", [
+            {"event_id": "a", "occurred_at": "2026-10-01 09:00", "status": "Delivered",
+             "location": "Porto", "milestone": "delivered"},
+        ])
+        db.update_shipment(1, "delivered", "CTT", "WRONG1")  # same number keeps it
+        self.assertEqual(len(db.shipment_events(1)), 1)
+        db.update_shipment(1, "shipped", "CTT", "RIGHT2")
+        self.assertEqual(db.shipment_events(1), [])
+        self.assertIsNone(db.shipments()[0]["last_event"])
+
     def test_selling_twice_from_a_stale_window_keeps_the_first_sale(self):
         db.init()
         db.add_listing("Jeans", "", "", "Depop", 1000, 4000)
