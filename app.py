@@ -389,6 +389,8 @@ with ebay_tab:
         for heading, rows in st.session_state.get("ebay", {}).items():
             st.subheader(heading, anchor=False)
             if rows:
+                rows = [{k: db.local_time(v) if k in ("date", "expires") and v else v for k, v in row.items()}
+                        for row in rows]
                 st.dataframe(rows, hide_index=True, column_config=EBAY_COLUMNS)
             else:
                 st.caption("Nothing here right now.")
