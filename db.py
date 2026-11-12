@@ -182,11 +182,17 @@ def shipments():
 
 
 def update_shipment(shipment_id, status, carrier, tracking_number):
-    execute(
-        "UPDATE shipments SET status = ?, carrier = ?, tracking_number = ?,"
-        " updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-        (status, carrier, tracking_number, shipment_id),
-    )
+    with closing(connect()) as conn, conn:
+        old = conn.execute("SELECT tracking_number FROM shipments WHERE id = ?", (shipment_id,)).fetchone()
+        if old and (old["tracking_number"] or "") != tracking_number:
+            # another number is another parcel, so the old one's history no longer applies
+            conn.execute("DELETE FROM shipment_events WHERE shipment_id = ?", (shipment_id,))
+            conn.execute("UPDATE shipments SET last_event = NULL WHERE id = ?", (shipment_id,))
+        conn.execute(
+            "UPDATE shipments SET status = ?, carrier = ?, tracking_number = ?,"
+            " updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (status, carrier, tracking_number, shipment_id),
+        )
 
 
 def record_tracking(shipment_id, status, last_event, events):
