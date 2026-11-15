@@ -168,12 +168,15 @@ with inventory_tab:
     platform_names = [p["name"] for p in platforms]
     form_column, table_column = st.columns([1, 2], gap="large")
 
-    with form_column, st.form("add_listing", clear_on_submit=True):
+    # emptied by hand after a save: clear_on_submit also wipes the fields when the title or price is missing
+    with form_column, st.form("add_listing"):
         st.subheader("New listing", anchor=False)
         values = listing_fields(platform_names, "new")
         if st.form_submit_button("Add listing", type="primary"):
             if values:
                 db.add_listing(*values)
+                for field in ("title", "brand", "size", "platform", "cost", "price"):
+                    st.session_state.pop(f"new_{field}", None)
                 st.rerun()
             else:
                 st.error(INVALID_LISTING)
