@@ -88,5 +88,22 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(AppTest.from_file(APP, default_timeout=30).run().title[0].value,
                          "1 to pack, 1 on the way, €1,227.98 made.")
 
+    def test_new_listing_keeps_what_was_typed_until_it_saves(self):
+        with patch.object(st, "form", wraps=st.form) as form:
+            app = AppTest.from_file(APP, default_timeout=30).run()
+        add_form = next(c for c in form.call_args_list if c.args[0] == "add_listing")
+        self.assertFalse(add_form.kwargs.get("clear_on_submit", False))
+        app.text_input(key="new_brand").set_value("Levi's")
+        app.number_input(key="new_price").set_value(25.0)
+        next(b for b in app.button if b.label == "Add listing").click().run()
+        self.assertEqual(len(app.error), 1)
+        self.assertEqual(app.text_input(key="new_brand").value, "Levi's")
+        app.text_input(key="new_title").set_value("Jeans")
+        next(b for b in app.button if b.label == "Add listing").click().run()
+        self.assertEqual(app.exception, [])
+        self.assertEqual(db.active_listings()[0]["brand"], "Levi's")
+        self.assertEqual(app.text_input(key="new_title").value, "")
+        self.assertEqual(app.number_input(key="new_price").value, 0.0)
+
 if __name__ == "__main__":
     unittest.main()
