@@ -13,11 +13,15 @@ MILESTONE_STATUS = {
 }
 
 
+STEPS = ["pending", "label_created", "shipped", "delivered"]
+
+
 def new_status(current, milestone):
     # returned is only ever set by hand and takes the sale out of profit, so tracking can't undo it
     if current == "returned":
         return current
-    return MILESTONE_STATUS.get(milestone, current)
+    # carriers often lag behind what was set by hand, so tracking only moves a parcel forward
+    return max(current, MILESTONE_STATUS.get(milestone, current), key=STEPS.index)
 
 
 def _event(raw):

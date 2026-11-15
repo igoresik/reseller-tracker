@@ -81,6 +81,11 @@ class Ship24Test(unittest.TestCase):
         self.assertEqual(ship24.new_status("pending", "in_transit"), "shipped")
         self.assertEqual(ship24.new_status("shipped", "exception"), "shipped")
 
+    def test_tracking_does_not_move_a_parcel_back(self):
+        self.assertEqual(ship24.new_status("shipped", "info_received"), "shipped")
+        self.assertEqual(ship24.new_status("delivered", "out_for_delivery"), "delivered")
+        self.assertEqual(ship24.new_status("label_created", "delivered"), "delivered")
+
 
 class EbayTest(unittest.TestCase):
     def test_code_from_redirect_decodes_url(self):
