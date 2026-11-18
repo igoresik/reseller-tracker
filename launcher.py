@@ -18,6 +18,7 @@ import ship24  # noqa: F401
 
 NAME = "Logistics Tracker"
 PORT = 48651
+LOG_LIMIT = 1_000_000
 ROOT = Path(__file__).parent
 BROWSERS = [
     r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe",
@@ -26,6 +27,15 @@ BROWSERS = [
     r"%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe",
     r"%LocalAppData%\Google\Chrome\Application\chrome.exe",
 ]
+
+
+def open_log(path, limit=LOG_LIMIT):
+    """Open the log for appending, so a crash from the last run is still there. Over ``limit`` bytes, the old log
+    moves to ``NAME.1`` (replacing an older one) and a fresh file starts."""
+    path = Path(path)
+    if path.exists() and path.stat().st_size > limit:
+        os.replace(path, path.with_name(path.name + ".1"))
+    return open(path, "a", encoding="utf-8")
 
 
 def is_running(port):
@@ -73,7 +83,7 @@ def main():
         return
 
     if sys.stdout is None:  # no console in the packaged app
-        sys.stdout = sys.stderr = open(db.DATA_DIR / "app.log", "w", encoding="utf-8")
+        sys.stdout = sys.stderr = open_log(db.DATA_DIR / "app.log")
     os.chdir(ROOT)  # Streamlit reads .streamlit/config.toml from the working directory
     port = free_port()
     threading.Thread(target=show_window, args=(browser, port), daemon=True).start()
