@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS listings (
     list_cents INTEGER NOT NULL CHECK (list_cents > 0),
     sale_cents INTEGER CHECK (sale_cents > 0),
     sale_fee_cents INTEGER,  -- the fee when it sold, so editing a platform's rates leaves past profit alone
+    returned_shipping_cents INTEGER NOT NULL DEFAULT 0,  -- outbound shipping lost on parcels that came back and were relisted
     status     TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'sold')),
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

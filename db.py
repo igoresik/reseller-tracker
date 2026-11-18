@@ -92,6 +92,8 @@ def init():
         conn.executescript(schema)
         if "sale_fee_cents" not in _columns(conn, "listings"):
             conn.execute("ALTER TABLE listings ADD COLUMN sale_fee_cents INTEGER")
+        if "returned_shipping_cents" not in _columns(conn, "listings"):
+            conn.execute("ALTER TABLE listings ADD COLUMN returned_shipping_cents INTEGER NOT NULL DEFAULT 0")
         # sales from before the fee was kept: today's rates are the best record left
         for row in conn.execute(
             "SELECT l.id, l.sale_cents, p.fee_bps, p.fee_fixed_cents FROM listings l"
@@ -178,6 +180,25 @@ def mark_sold(listing_id, sale_cents, shipping_cents):
         )
 
 
+def relist(shipment_id):
+    """A returned parcel's listing goes back to active. Its outbound shipping stays on the listing as a loss,
+    and the old sale and parcel go, so it can be sold again."""
+    with closing(connect()) as conn, conn:
+        row = conn.execute(
+            "SELECT listing_id, shipping_cents FROM shipments WHERE id = ? AND status = 'returned'",
+            (shipment_id,),
+        ).fetchone()
+        if not row:  # another window already relisted it, or it isn't a return
+            return
+        conn.execute("DELETE FROM shipment_events WHERE shipment_id = ?", (shipment_id,))
+        conn.execute("DELETE FROM shipments WHERE id = ?", (shipment_id,))
+        conn.execute(
+            "UPDATE listings SET status = 'active', sale_cents = NULL, sale_fee_cents = NULL,"
+            " returned_shipping_cents = returned_shipping_cents + ? WHERE id = ?",
+            (row["shipping_cents"], row["listing_id"]),
+        )
+
+
 def shipments():
     return query(
         "SELECT s.id, l.title, l.platform, l.sale_cents, s.carrier, s.tracking_number,"
@@ -241,6 +262,10 @@ def save_settings(values):
             " ON CONFLICT(key) DO UPDATE SET value = excluded.value",
             [(key, vault.lock(value) if key in SECRET_SETTINGS else value) for key, value in values.items()],
         )
+
+
+def relisted_loss_cents():
+    return query("SELECT COALESCE(SUM(returned_shipping_cents), 0) AS lost FROM listings")[0]["lost"]
 
 
 def sold_listings():
