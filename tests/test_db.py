@@ -94,6 +94,16 @@ class DatabaseTest(unittest.TestCase):
         shipment = db.shipments()[0]
         self.assertEqual((shipment["status"], shipment["last_event"]), ("shipped", "2026-10-02 09:00 Departed"))
 
+    def test_a_stale_tracking_answer_does_not_undo_a_delivery(self):
+        db.init()
+        db.add_listing("Jeans", "", "", "Depop", 1000, 4000)
+        db.mark_sold(1, 3000, 0)
+        db.update_shipment(1, "delivered", "CTT", "AB1")  # set by hand
+        db.record_tracking(1, "shipped", "2026-10-02 09:00 Departed", [])
+        self.assertEqual(db.shipments()[0]["status"], "delivered")
+        db.record_tracking(1, "returned", "2026-10-09 09:00 Returned", [])  # a real return still counts
+        self.assertEqual(db.shipments()[0]["status"], "returned")
+
     def test_new_tracking_number_drops_the_old_parcels_history(self):
         db.init()
         db.add_listing("Jeans", "", "", "Depop", 1000, 4000)
