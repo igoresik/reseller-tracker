@@ -43,6 +43,18 @@ class AppTestCase(unittest.TestCase):
         offer = next(n for n in app.number_input if n.label == "Buyer's offer (€)")
         self.assertEqual(offer.value, 30.0)
 
+    def test_remove_listing_needs_the_confirm_box_ticked(self):
+        db.init()
+        db.add_listing("Jeans", "", "", "Depop", 1000, 2000)
+        app = AppTest.from_file(APP, default_timeout=30).run()
+        next(b for b in app.button if b.label == "Remove listing").click().run()
+        self.assertEqual(app.exception, [])
+        self.assertEqual(len(db.active_listings()), 1)
+        self.assertTrue(any("Tick the box" in w.value for w in app.warning))
+        app.checkbox(key="sure_1").check()
+        next(b for b in app.button if b.label == "Remove listing").click().run()
+        self.assertEqual(db.active_listings(), [])
+
     def test_parcel_heading_escapes_markdown_in_the_title(self):
         db.init()
         db.add_listing("Tee *new* $5 or $6 :red[L]", "", "", "Depop", 100, 500)
