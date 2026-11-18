@@ -222,6 +222,7 @@ with inventory_tab:
                 # keyed per listing so the fields refill when another one is picked
                 with st.form(f"edit_{chosen['id']}"):
                     values = listing_fields(platform_names, f"edit_{chosen['id']}", chosen)
+                    sure = st.checkbox("Tick to confirm before removing this listing", key=f"sure_{chosen['id']}")
                     save, remove, _ = st.columns([1, 1, 2])
                     if save.form_submit_button("Save changes", type="primary"):
                         if values:
@@ -230,8 +231,11 @@ with inventory_tab:
                         else:
                             st.error(INVALID_LISTING)
                     if remove.form_submit_button("Remove listing"):
-                        db.delete_listing(chosen["id"])
-                        st.rerun()
+                        if sure:
+                            db.delete_listing(chosen["id"])
+                            st.rerun()
+                        else:
+                            st.warning("Tick the box above first, then remove the listing.")
         else:
             st.info("Nothing listed yet. Add your first listing with the form.")
 
