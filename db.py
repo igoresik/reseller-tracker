@@ -212,6 +212,9 @@ def record_tracking(shipment_id, status, last_event, events):
                 for e in events
             ],
         )
+        current = conn.execute("SELECT status FROM shipments WHERE id = ?", (shipment_id,)).fetchone()
+        if current and current["status"] == "delivered" and status in ("pending", "label_created", "shipped"):
+            status = "delivered"  # a late or stale answer must not undo a delivery (a return still can)
         conn.execute(
             "UPDATE shipments SET status = ?, last_event = ?,"
             " updated_at = CURRENT_TIMESTAMP WHERE id = ?",
