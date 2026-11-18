@@ -34,6 +34,32 @@ class DatabaseTest(unittest.TestCase):
         self.addCleanup(patcher.stop)
         self.addCleanup(self.folder.cleanup)
 
+    def test_relist_moves_a_returned_listing_back_to_active_and_keeps_the_loss(self):
+        db.init()
+        db.add_listing("Coat", "", "", "Depop", 1500, 3000)
+        db.mark_sold(1, 2500, 400)
+        db.relist(1)  # not returned yet: nothing happens
+        self.assertEqual(db.active_listings(), [])
+        db.update_shipment(1, "returned", "", "")
+        db.relist(1)
+        listing = db.active_listings()[0]
+        self.assertEqual((listing["status"], listing["sale_cents"], listing["sale_fee_cents"]), ("active", None, None))
+        self.assertEqual(db.shipments(), [])
+        self.assertEqual(db.relisted_loss_cents(), 400)
+        db.relist(1)  # twice changes nothing
+        self.assertEqual(db.relisted_loss_cents(), 400)
+        db.mark_sold(1, 2800, 450)  # it can be sold again
+        again = db.shipments()[0]["id"]
+        db.update_shipment(again, "returned", "", "")
+        db.relist(again)
+        self.assertEqual(db.relisted_loss_cents(), 850)
+
+    def test_old_database_gets_the_returned_shipping_column(self):
+        with closing(sqlite3.connect(self.path)) as conn, conn:
+            conn.executescript(V01_SCHEMA)
+        db.init()
+        self.assertEqual(db.relisted_loss_cents(), 0)
+
     def test_v01_database_moves_to_cents_without_losing_anything(self):
         with closing(sqlite3.connect(self.path)) as conn, conn:
             conn.executescript(V01_SCHEMA)

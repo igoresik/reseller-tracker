@@ -82,11 +82,25 @@ class AppTestCase(unittest.TestCase):
         db.add_listing("Jeans", "", "", "Depop", 1000, 2500)
         db.mark_sold(1, 2000, 350)  # 2000 - 200 fee - 1000 paid - 350 shipping
         db.add_listing("Coat", "", "", "eBay", 1500, 3000)
-        db.mark_sold(2, 1000, 0)
+        db.mark_sold(2, 1000, 400)
         db.update_shipment(2, "returned", "", "")
         db.add_listing("Tee", "", "", "Vinted", 200, 800)
         app = AppTest.from_file(APP, default_timeout=30).run()
-        self.assertEqual(app.title[0].value, "1 listing live, 1 to pack, €4.50 made.")
+        # the return costs its €4.00 shipping, no fee and no cost price
+        self.assertEqual(app.title[0].value, "1 listing live, 1 to pack, €0.50 made.")
+
+    def test_relist_puts_a_returned_item_back_and_keeps_the_shipping_loss(self):
+        db.init()
+        db.add_listing("Coat", "", "", "Vinted", 1500, 3000)
+        db.mark_sold(1, 2500, 400)
+        db.update_shipment(1, "returned", "", "")
+        app = AppTest.from_file(APP, default_timeout=30).run()
+        self.assertEqual(app.title[0].value, "−€4.00 made.")
+        next(b for b in app.button if b.label == "Relist").click().run()
+        self.assertEqual(app.exception, [])
+        self.assertEqual([l["title"] for l in db.active_listings()], ["Coat"])
+        self.assertEqual(app.title[0].value, "1 listing live, −€4.00 made.")
+        self.assertFalse(any(b.label == "Relist" for b in app.button))
 
     def test_headline_shows_a_loss_and_big_amounts(self):
         db.init()

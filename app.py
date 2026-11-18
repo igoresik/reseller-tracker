@@ -48,13 +48,15 @@ def eur(cents):
     return f"{sign}€{abs(cents) // 100:,}.{abs(cents) % 100:02d}"
 
 
-def headline(listings, sold):
+def headline(listings, sold, relisted_loss=0):
     to_pack = sum(s["status"] == "pending" for s in sold)
     on_the_way = sum(s["status"] in ("label_created", "shipped") for s in sold)
-    made = sum(
-        s["sale_cents"] - s["sale_fee_cents"] - s["cost_cents"] - s["shipping_cents"]
+    # a returned parcel keeps only the outbound shipping as a loss; platform fees are not counted for it
+    made = -relisted_loss + sum(
+        -s["shipping_cents"]
+        if s["status"] == "returned"
+        else s["sale_cents"] - s["sale_fee_cents"] - s["cost_cents"] - s["shipping_cents"]
         for s in sold
-        if s["status"] != "returned"
     )
     parts = []
     if listings:
@@ -63,7 +65,7 @@ def headline(listings, sold):
         parts.append(f"{to_pack} to pack")
     if on_the_way:
         parts.append(f"{on_the_way} on the way")
-    if sold:
+    if sold or relisted_loss:
         parts.append(f"{eur(made)} made")
     return ", ".join(parts) + "." if parts else "Nothing listed yet."
 
@@ -158,7 +160,7 @@ setup_database()
 settings = db.settings()
 listings = db.active_listings()
 
-st.title(headline(listings, db.sold_listings()), anchor=False)
+st.title(headline(listings, db.sold_listings(), db.relisted_loss_cents()), anchor=False)
 inventory_tab, profit_tab, shipping_tab, ebay_tab, settings_tab = st.tabs(
     ["Inventory", "Profit", "Shipping", "eBay", "Settings"]
 )
@@ -347,7 +349,10 @@ with shipping_tab:
         with tracking_column:
             st.subheader(plain(shipment["title"]), anchor=False)
             if shipment["status"] == "returned":
-                st.warning("This parcel came back to you.")
+                st.warning("This parcel came back to you. The shipping you paid counts as a loss.")
+                if st.button("Relist", help="Put the item back in Inventory as active"):
+                    db.relist(shipment["id"])
+                    st.rerun()
             else:
                 st.html(journey(shipment["status"]))
 
