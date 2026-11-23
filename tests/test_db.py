@@ -130,6 +130,28 @@ class DatabaseTest(unittest.TestCase):
         db.record_tracking(1, "returned", "2026-10-09 09:00 Returned", [])  # a real return still counts
         self.assertEqual(db.shipments()[0]["status"], "returned")
 
+    def test_a_check_that_started_before_a_return_does_not_undo_it(self):
+        db.init()
+        db.add_listing("Jeans", "", "", "Depop", 1000, 4000)
+        db.mark_sold(1, 3000, 0)
+        db.update_shipment(1, "returned", "CTT", "AB1")  # set by hand while the check was running
+        db.record_tracking(1, "delivered", "2026-10-02 09:00 Delivered", [], "AB1")
+        self.assertEqual(db.shipments()[0]["status"], "returned")
+
+    def test_an_answer_for_an_old_tracking_number_is_dropped(self):
+        db.init()
+        db.add_listing("Jeans", "", "", "Depop", 1000, 4000)
+        db.mark_sold(1, 3000, 0)
+        db.update_shipment(1, "shipped", "CTT", "OLD1")
+        db.update_shipment(1, "shipped", "CTT", "NEW2")  # edited in another window mid-check
+        old_event = [{"event_id": "a", "occurred_at": "2026-10-01 09:00", "status": "Delivered",
+                      "location": None, "milestone": "delivered"}]
+        saved = db.record_tracking(1, "delivered", "2026-10-01 09:00 Delivered", old_event, "OLD1")
+        self.assertFalse(saved)
+        self.assertEqual(db.shipment_events(1), [])
+        self.assertEqual(db.shipments()[0]["status"], "shipped")
+        self.assertTrue(db.record_tracking(1, "delivered", "2026-10-01 09:00 Delivered", old_event, "NEW2"))
+
     def test_new_tracking_number_drops_the_old_parcels_history(self):
         db.init()
         db.add_listing("Jeans", "", "", "Depop", 1000, 4000)
