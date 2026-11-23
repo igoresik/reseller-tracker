@@ -372,8 +372,11 @@ with shipping_tab:
                     if events:
                         last_event = f"{events[0]['occurred_at'] or ''} {events[0]['status']}".strip()
                     status = ship24.new_status(shipment["status"], milestone)
-                    db.record_tracking(shipment["id"], status, last_event, events)
-                    st.rerun()
+                    if db.record_tracking(
+                        shipment["id"], status, last_event, events, shipment["tracking_number"]
+                    ):
+                        st.rerun()
+                    st.warning("The tracking number changed while checking, so that answer was dropped.")
             history = db.shipment_events(shipment["id"])
             if history:
                 st.dataframe(

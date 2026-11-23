@@ -221,9 +221,18 @@ def update_shipment(shipment_id, status, carrier, tracking_number):
         )
 
 
-def record_tracking(shipment_id, status, last_event, events):
-    """Save a Ship24 answer in one transaction: events not seen before, then the parcel's state."""
+def record_tracking(shipment_id, status, last_event, events, tracking_number=None):
+    """Save a Ship24 answer in one transaction: events not seen before, then the parcel's state.
+
+    Pass the tracking number that was checked. If the parcel has another one by now (edited
+    in a second window while Ship24 was answering), nothing is saved and this returns False.
+    """
     with closing(connect()) as conn, conn:
+        current = conn.execute(
+            "SELECT status, tracking_number FROM shipments WHERE id = ?", (shipment_id,)
+        ).fetchone()
+        if tracking_number is not None and current and (current["tracking_number"] or "") != tracking_number:
+            return False
         conn.executemany(
             "INSERT OR IGNORE INTO shipment_events"
             " (shipment_id, event_id, occurred_at, status, location, milestone)"
@@ -233,14 +242,16 @@ def record_tracking(shipment_id, status, last_event, events):
                 for e in events
             ],
         )
-        current = conn.execute("SELECT status FROM shipments WHERE id = ?", (shipment_id,)).fetchone()
-        if current and current["status"] == "delivered" and status in ("pending", "label_created", "shipped"):
+        if current and current["status"] == "returned":
+            status = "returned"  # only set by hand; a check that started before it must not undo it
+        elif current and current["status"] == "delivered" and status in ("pending", "label_created", "shipped"):
             status = "delivered"  # a late or stale answer must not undo a delivery (a return still can)
         conn.execute(
             "UPDATE shipments SET status = ?, last_event = ?,"
             " updated_at = CURRENT_TIMESTAMP WHERE id = ?",
             (status, last_event, shipment_id),
         )
+        return True
 
 
 def shipment_events(shipment_id):
