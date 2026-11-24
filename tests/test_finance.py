@@ -43,6 +43,12 @@ class ConversionTest(unittest.TestCase):
         self.assertEqual(to_cents("2.675"), 268)  # half up, where float rounding gives 2.67
         self.assertEqual(to_cents(0), 0)
 
+    def test_to_cents_rejects_amounts_out_of_range(self):
+        self.assertEqual(to_cents(1_000_000), 100_000_000)
+        for bad in (1e30, 1e20, 9.3e16, 1_000_000.01, float("nan"), float("inf"), "abc"):
+            with self.assertRaises(ValueError):
+                to_cents(bad)
+
     def test_to_bps(self):
         self.assertEqual(to_bps(12.8), 1280)
         self.assertEqual(to_bps(10), 1000)

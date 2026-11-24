@@ -7,7 +7,7 @@ import streamlit as st
 import db
 import ebay
 import ship24
-from finance import net_profit, to_bps, to_cents
+from finance import MAX_EUROS, net_profit, to_bps, to_cents
 
 API_ERRORS = (requests.RequestException, RuntimeError)
 STATUS_LABELS = {
@@ -86,10 +86,10 @@ def listing_fields(platform_names, key, listing=None):
     left, right = st.columns(2)
     # the inputs work in euros; everything past this point is whole cents
     cost = left.number_input(
-        "You paid (€)", min_value=0.0, value=current.get("cost_cents", 0) / 100, step=0.5, key=f"{key}_cost"
+        "You paid (€)", min_value=0.0, max_value=float(MAX_EUROS), value=current.get("cost_cents", 0) / 100, step=0.5, key=f"{key}_cost"
     )
     asking = right.number_input(
-        "Asking price (€)", min_value=0.0, value=current.get("list_cents", 0) / 100, step=0.5, key=f"{key}_price"
+        "Asking price (€)", min_value=0.0, max_value=float(MAX_EUROS), value=current.get("list_cents", 0) / 100, step=0.5, key=f"{key}_price"
     )
     cost_cents, list_cents = to_cents(cost), to_cents(asking)
     if not title.strip() or list_cents <= 0:
@@ -252,7 +252,7 @@ with inventory_tab:
                 column_config={
                     "name": "Platform",
                     "fee_pct": st.column_config.NumberColumn("Fee %", min_value=0.0, max_value=100.0),
-                    "fee_fixed": st.column_config.NumberColumn("Fixed fee (€)", min_value=0.0),
+                    "fee_fixed": st.column_config.NumberColumn("Fixed fee (€)", min_value=0.0, max_value=float(MAX_EUROS)),
                 },
             )
             if st.button("Save fees"):
@@ -278,12 +278,13 @@ with profit_tab:
             offer = st.number_input(
                 "Buyer's offer (€)",
                 min_value=0.0,
+                max_value=float(MAX_EUROS),
                 value=listing["list_cents"] / 100,
                 step=0.5,
                 key=f"offer_{listing['id']}_{listing['list_cents']}",
             )
             shipping = st.number_input(
-                "Shipping you pay (€)", min_value=0.0, step=0.5, key=f"shipping_{listing['id']}"
+                "Shipping you pay (€)", min_value=0.0, max_value=float(MAX_EUROS), step=0.5, key=f"shipping_{listing['id']}"
             )
             sale_cents, shipping_cents = to_cents(offer), to_cents(shipping)
             if st.button("Mark sold at this price", type="primary", disabled=sale_cents <= 0):
